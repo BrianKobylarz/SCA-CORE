@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semantic Flow Analyzer</title>
+    
+    <!-- Plotly.js for visualizations -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    
+    <!-- TailwindCSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js for reactivity -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div x-data="semanticFlowApp()" class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <span class="text-2xl">🌊</span>
+                        <h1 class="ml-3 text-2xl font-bold text-gray-900">
+                            Semantic Flow Analyzer
+                        </h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button @click="showHelp = true" 
+                                class="text-gray-500 hover:text-gray-700">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Upload Section -->
+            <div class="bg-white rounded-lg shadow p-6 mb-8">
+                <h2 class="text-lg font-semibold mb-4">Data Input</h2>
+                
+                <div class="space-y-4">
+                    <!-- Demo Data Option -->
+                    <div>
+                        <button @click="loadDemoData()" 
+                                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                            Load Demo Data
+                        </button>
+                        <span class="ml-3 text-sm text-gray-600">
+                            Try with sample technology/AI themed data
+                        </span>
+                    </div>
+                    
+                    <!-- File Upload Option -->
+                    <div>
+                        <input type="file" 
+                               @change="handleFileUpload($event)" 
+                               accept=".json,.csv"
+                               class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <span class="ml-3 text-sm text-gray-600">
+                            Upload your embeddings (JSON or CSV)
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Analysis Controls -->
+            <div class="bg-white rounded-lg shadow p-6 mb-8" x-show="dataLoaded">
+                <h2 class="text-lg font-semibold mb-4">Analysis Configuration</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Focus Words (comma-separated)
+                        </label>
+                        <input type="text" 
+                               x-model="focusWords"
+                               placeholder="artificial, intelligence, machine, learning"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Number of Neighbors (k)
+                        </label>
+                        <input type="number" 
+                               x-model.number="kNeighbors"
+                               min="5" max="50"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <button @click="runAnalysis()" 
+                            :disabled="analyzing"
+                            class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 disabled:bg-gray-400">
+                        <span x-show="!analyzing">Run Analysis</span>
+                        <span x-show="analyzing">Analyzing...</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Results Section -->
+            <div x-show="resultsAvailable" class="space-y-8">
+                <!-- Summary Stats -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-lg font-semibold mb-4">Analysis Summary</h2>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-600" x-text="summary.totalFlows"></div>
+                            <div class="text-sm text-gray-600">Total Flows</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-600" x-text="summary.burstEvents"></div>
+                            <div class="text-sm text-gray-600">Burst Events</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-purple-600" x-text="summary.communities"></div>
+                            <div class="text-sm text-gray-600">Communities</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-red-600" x-text="summary.cascadeRisk"></div>
+                            <div class="text-sm text-gray-600">Cascade Risk</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Visualizations -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-lg font-semibold mb-4">Visualizations</h2>
+                    
+                    <!-- Tab Navigation -->
+                    <div class="border-b border-gray-200 mb-4">
+                        <nav class="-mb-px flex space-x-8">
+                            <button @click="activeTab = 'network'"
+                                    :class="{'border-blue-500 text-blue-600 border-b-2': activeTab === 'network'}"
+                                    class="py-2 px-1 font-medium text-sm">
+                                Network View
+                            </button>
+                            <button @click="activeTab = 'timeline'"
+                                    :class="{'border-blue-500 text-blue-600 border-b-2': activeTab === 'timeline'}"
+                                    class="py-2 px-1 font-medium text-sm">
+                                Timeline
+                            </button>
+                            <button @click="activeTab = 'heatmap'"
+                                    :class="{'border-blue-500 text-blue-600 border-b-2': activeTab === 'heatmap'}"
+                                    class="py-2 px-1 font-medium text-sm">
+                                Evolution Heatmap
+                            </button>
+                        </nav>
+                    </div>
+                    
+                    <!-- Visualization Container -->
+                    <div id="visualization" class="w-full h-96"></div>
+                </div>
+                
+                <!-- Export Options -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-lg font-semibold mb-4">Export Results</h2>
+                    <div class="flex space-x-4">
+                        <button @click="exportJSON()" 
+                                class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                            Export JSON
+                        </button>
+                        <button @click="exportCSV()" 
+                                class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                            Export CSV
+                        </button>
+                        <button @click="exportReport()" 
+                                class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                            Generate Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
