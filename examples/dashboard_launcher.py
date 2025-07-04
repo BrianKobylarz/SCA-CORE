@@ -76,7 +76,7 @@ def create_sample_data():
     return embedding_store, timestamps
 
 @st.cache_data
-def run_analysis(embedding_store, timestamps):
+def run_analysis(_embedding_store, timestamps):
     """Run semantic flow analysis and cache results"""
     
     config = FlowConfig(
@@ -87,7 +87,7 @@ def run_analysis(embedding_store, timestamps):
     )
     
     # Initialize analyzer
-    analyzer = SemanticFlowAnalyzer(embedding_store, config)
+    analyzer = SemanticFlowAnalyzer(_embedding_store, config)
     
     # Run analysis
     with st.spinner("Running semantic flow analysis..."):
